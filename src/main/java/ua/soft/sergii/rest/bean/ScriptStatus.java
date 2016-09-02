@@ -1,0 +1,5 @@
+package ua.soft.sergii.rest.bean;
+
+public enum ScriptStatus {
+    WAITING, PROCESSING, FINISHED, TERMINATED_WITH_EXCEPTION, TERMINATED_BY_CLIENT, TERMINATED_TIMEOUT,
+}
