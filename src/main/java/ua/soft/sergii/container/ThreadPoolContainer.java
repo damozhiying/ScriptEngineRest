@@ -6,6 +6,8 @@ import java.util.Map;
 public final class ThreadPoolContainer {
 
     private static final int POOL_SIZE = 3;
+    private static final int EXECUTION_TIMEOUT_IN_MILLIS = 60 * 1000;
+    private static final int WAITING_TIME_PIECE_IN_MILLIS = 100;
 
     private final Map<String, ThreadPool> executorServices;
 
@@ -22,7 +24,7 @@ public final class ThreadPoolContainer {
     }
 
     private ThreadPool addNewThreadPool(String accessToken) {
-        ThreadPool threadPool = new ThreadPool(POOL_SIZE);
+        ThreadPool threadPool = new ThreadPool(POOL_SIZE, EXECUTION_TIMEOUT_IN_MILLIS, WAITING_TIME_PIECE_IN_MILLIS);
         executorServices.put(accessToken, threadPool);
         return threadPool;
     }

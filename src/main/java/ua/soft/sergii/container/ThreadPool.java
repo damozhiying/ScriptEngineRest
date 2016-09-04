@@ -3,6 +3,7 @@ package ua.soft.sergii.container;
 import org.apache.commons.collections4.map.LinkedMap;
 import ua.soft.sergii.exception.ServerException;
 import ua.soft.sergii.executor.AsyncScriptExecutor;
+import ua.soft.sergii.executor.ScriptExecutor;
 import ua.soft.sergii.rest.bean.ScriptStatus;
 
 import java.util.HashMap;
@@ -11,14 +12,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadPool {
 
+    private final int EXECUTION_TIMEOUT_IN_MILLIS;
+    private final int WAITING_TIME_PIECE_IN_MILLIS;
     private final int POOL_SIZE;
+
 
     private final LinkedMap<Integer, AsyncScriptExecutor.AsyncScriptThread> tasks = new LinkedMap<>();
     private final Map<Integer, AsyncScriptExecutor.AsyncScriptThread> currentlyRunning = new HashMap<>();
     private final AtomicInteger currentRunningThreadsNumber;
 
-    ThreadPool(int maxThreadNumber) {
+    ThreadPool(int maxThreadNumber, int executionTimeoutInMillis, int waitingTimePieceInMillis) {
         this.POOL_SIZE = maxThreadNumber;
+        this.EXECUTION_TIMEOUT_IN_MILLIS = executionTimeoutInMillis;
+        this.WAITING_TIME_PIECE_IN_MILLIS = waitingTimePieceInMillis;
         this.currentRunningThreadsNumber = new AtomicInteger();
         new ServiceThread().start();
     }
@@ -30,11 +36,14 @@ public class ThreadPool {
         }
     }
 
-    public void terminateTask(int scriptId, ScriptStatus scriptStatus) {
+    public void terminateTask(int scriptId, ScriptExecutor scriptExecutor) {
         synchronized (tasks) {
-            if (scriptStatus == ScriptStatus.WAITING) {
-                tasks.remove(scriptId);
-                return;
+            if (scriptExecutor.getScriptStatus() == ScriptStatus.WAITING) {
+                AsyncScriptExecutor.AsyncScriptThread task = tasks.remove(Integer.valueOf(scriptId));
+                if (task != null) {
+                    task.setStatus(ScriptStatus.TERMINATED_BY_CLIENT);
+                    return;
+                }
             }
         }
         synchronized (currentlyRunning) {
@@ -49,11 +58,11 @@ public class ThreadPool {
     private void stopThreadIfAlive(AsyncScriptExecutor.AsyncScriptThread task) {
         if (task.isAlive()) {
             task.stop();
-            task.setStatus(ScriptStatus.TERMINATED_BY_CLIENT);
             synchronized (tasks) {
                 tasks.notifyAll();
             }
         }
+        task.setStatus(ScriptStatus.TERMINATED_BY_CLIENT);
     }
 
     private class ServiceThread extends Thread {
@@ -91,13 +100,15 @@ public class ThreadPool {
         }
 
         private void startScriptExecution() {
-            synchronized (currentlyRunning) {
+            synchronized (tasks) {
                 Integer scriptId = tasks.firstKey();
                 AsyncScriptExecutor.AsyncScriptThread scriptThread = tasks.remove(scriptId);
-                if (scriptThread != null) {
-                    currentlyRunning.put(scriptId, scriptThread);
-                    new ScriptSupportingThread(scriptThread, scriptId).start();
-                    currentRunningThreadsNumber.incrementAndGet();
+                synchronized (currentlyRunning) {
+                    if (scriptThread != null) {
+                        currentlyRunning.put(scriptId, scriptThread);
+                        new ScriptSupportingThread(scriptThread, scriptId).start();
+                        currentRunningThreadsNumber.incrementAndGet();
+                    }
                 }
             }
         }
@@ -105,20 +116,17 @@ public class ThreadPool {
 
     private class ScriptSupportingThread extends Thread {
 
-        private static final int EXECUTION_TIMEOUT_IN_MILLIS = 60 * 1000;
-        private static final int WAITING_TIME_PIECE_IN_MILLIS = 100;
-
-        private AsyncScriptExecutor.AsyncScriptThread scriptThread;
-        private int scriptId;
+        private final AsyncScriptExecutor.AsyncScriptThread scriptThread;
+        private final int scriptId;
 
         private ScriptSupportingThread(AsyncScriptExecutor.AsyncScriptThread scriptThread, int scriptId) {
             this.scriptThread = scriptThread;
             this.scriptId = scriptId;
+            this.scriptThread.start();
         }
 
         @Override
         public void run() {
-            scriptThread.start();
             try {
                 waitScriptExecutionFinish(scriptThread);
                 synchronized (tasks) {

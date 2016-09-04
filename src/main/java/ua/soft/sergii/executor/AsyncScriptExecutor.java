@@ -1,7 +1,6 @@
 package ua.soft.sergii.executor;
 
 import ua.soft.sergii.container.ThreadPoolContainer;
-import ua.soft.sergii.exception.ScriptTerminationException;
 import ua.soft.sergii.exception.ServerException;
 import ua.soft.sergii.rest.bean.ScriptBean;
 import ua.soft.sergii.rest.bean.ScriptStatus;
@@ -28,9 +27,7 @@ public class AsyncScriptExecutor extends AbstractScriptExecutor {
 
     @Override
     public void terminateScript(String accessToken, int scriptId) {
-        boolean canBeTerminated = isScriptCanBeTerminated();
-        threadPoolContainer.getThreadPool(accessToken).terminateTask(scriptId, scriptStatus);
-        proceedIfNotTerminated(scriptId, canBeTerminated);
+        threadPoolContainer.getThreadPool(accessToken).terminateTask(scriptId, this);
     }
 
     private boolean isScriptCanBeTerminated() {
@@ -39,14 +36,6 @@ public class AsyncScriptExecutor extends AbstractScriptExecutor {
             canBeTerminated = true;
         }
         return canBeTerminated;
-    }
-
-    private void proceedIfNotTerminated(int scriptId, boolean canBeTerminated) {
-        if (canBeTerminated) {
-            if (scriptStatus != ScriptStatus.TERMINATED_BY_CLIENT) {
-                throw new ScriptTerminationException("Cannot terminate script with id = " + scriptId);
-            }
-        }
     }
 
     public class AsyncScriptThread extends Thread {
