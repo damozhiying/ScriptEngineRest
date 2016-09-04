@@ -33,7 +33,8 @@ public final class ScriptsContainer {
 
     public void removeScript(String accessToken, int scriptId) {
         ScriptBean scriptBean = getScriptBean(accessToken,scriptId);
-        if (scriptBean.getScriptExecutor().getScriptStatus() == ScriptStatus.PROCESSING) {
+        ScriptStatus scriptStatus = scriptBean.getScriptStatus();
+        if (scriptStatus == ScriptStatus.PROCESSING || scriptStatus == ScriptStatus.WAITING) {
             scriptBean.getScriptExecutor().terminateScript(accessToken, scriptId);
         }
         scriptBeans.get(accessToken).remove(scriptId);

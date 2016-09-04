@@ -28,9 +28,24 @@ public class AsyncScriptExecutor extends AbstractScriptExecutor {
 
     @Override
     public void terminateScript(String accessToken, int scriptId) {
-        threadPoolContainer.getThreadPool(accessToken).terminateTask(scriptId);
-        if (scriptStatus != ScriptStatus.TERMINATED_BY_CLIENT) {
-            throw new ScriptTerminationException("Cannot terminate script with id = " + scriptId);
+        boolean canBeTerminated = isScriptCanBeTerminated();
+        threadPoolContainer.getThreadPool(accessToken).terminateTask(scriptId, scriptStatus);
+        proceedIfNotTerminated(scriptId, canBeTerminated);
+    }
+
+    private boolean isScriptCanBeTerminated() {
+        boolean canBeTerminated = false;
+        if (scriptStatus == ScriptStatus.PROCESSING) {
+            canBeTerminated = true;
+        }
+        return canBeTerminated;
+    }
+
+    private void proceedIfNotTerminated(int scriptId, boolean canBeTerminated) {
+        if (canBeTerminated) {
+            if (scriptStatus != ScriptStatus.TERMINATED_BY_CLIENT) {
+                throw new ScriptTerminationException("Cannot terminate script with id = " + scriptId);
+            }
         }
     }
 

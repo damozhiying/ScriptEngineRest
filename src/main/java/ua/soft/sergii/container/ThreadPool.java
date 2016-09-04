@@ -30,7 +30,13 @@ public class ThreadPool {
         }
     }
 
-    public void terminateTask(int scriptId) {
+    public void terminateTask(int scriptId, ScriptStatus scriptStatus) {
+        synchronized (tasks) {
+            if (scriptStatus == ScriptStatus.WAITING) {
+                tasks.remove(scriptId);
+                return;
+            }
+        }
         synchronized (currentlyRunning) {
             AsyncScriptExecutor.AsyncScriptThread task = currentlyRunning.remove(scriptId);
             if (task != null) {
