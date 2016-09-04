@@ -122,12 +122,16 @@ public class ThreadPool {
         private ScriptSupportingThread(AsyncScriptExecutor.AsyncScriptThread scriptThread, int scriptId) {
             this.scriptThread = scriptThread;
             this.scriptId = scriptId;
-            this.scriptThread.start();
         }
 
         @Override
         public void run() {
             try {
+                synchronized (currentlyRunning) {
+                    if (currentlyRunning.containsValue(scriptThread)) {
+                        scriptThread.start();
+                    }
+                }
                 waitScriptExecutionFinish(scriptThread);
                 synchronized (tasks) {
                     tasks.notifyAll();
