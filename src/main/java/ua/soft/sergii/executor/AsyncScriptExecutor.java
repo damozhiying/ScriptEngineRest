@@ -30,14 +30,6 @@ public class AsyncScriptExecutor extends AbstractScriptExecutor {
         threadPoolContainer.getThreadPool(accessToken).terminateTask(scriptId, this);
     }
 
-    private boolean isScriptCanBeTerminated() {
-        boolean canBeTerminated = false;
-        if (scriptStatus == ScriptStatus.PROCESSING) {
-            canBeTerminated = true;
-        }
-        return canBeTerminated;
-    }
-
     public class AsyncScriptThread extends Thread {
 
         private String script;

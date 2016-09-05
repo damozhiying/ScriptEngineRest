@@ -43,6 +43,22 @@
     <build>
         <finalName>ScriptEngineREST</finalName>
         <plugins>
+            <!--<plugin>
+                <groupId>org.codehaus.cargo</groupId>
+                <artifactId>cargo-maven2-plugin</artifactId>
+                <version>1.4.8</version>
+                <configuration>
+                    <container>
+                        <containerId>tomcat8x</containerId>
+                        <home>${env.CATALINA_HOME}</home>
+                        <timeout>0</timeout>
+                    </container>
+                    <configuration>
+                        <type>existing</type>
+                        <home>${env.CATALINA_HOME}</home>
+                    </configuration>
+                </configuration>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
